@@ -1,16 +1,14 @@
 package br.com.desafio.totalshake.domain.model;
 
-import br.com.desafio.totalshake.application.exception.ItemInexistenteException;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import br.com.desafio.totalshake.application.errors.exceptions.ItemInexistenteException;
+import br.com.desafio.totalshake.application.errors.CodInternoErroApi;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Entity
-@Table(name = "PEDIDO")
+@Table(name = "pedido")
 public class Pedido {
 
     @Id
@@ -22,31 +20,37 @@ public class Pedido {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
-    @JsonIgnoreProperties("pedido")
+    @OneToMany(
+            mappedBy = "pedido",
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    )
     private List<ItemPedido> itens;
 
     public void adicionarItem(ItemPedido itemPedido){
-        if(itemPedido != null){
-            this.garantirNullSafetyItensPedido();
-            itemPedido.setPedido(this);
-            itens.add(itemPedido);
-        }
+        this.garantirNullSafetyItens();
+        itemPedido.setPedido(this);
+        itens.add(itemPedido);
     }
 
     public void acrescentarItemDoPedido(long idPedido, int quantidade) {
-        this.garantirNullSafetyItensPedido();
+        this.garantirNullSafetyItens();
         this.itens.stream()
                 .filter(itemPedido -> itemPedido.getId() == idPedido)
                 .findFirst()
                 .ifPresentOrElse(
                         itemPedido -> itemPedido.acrescentarQuantidadeItem(quantidade),
-                        () -> { throw new ItemInexistenteException("Esse item não existe no pedido"); }
+                        () -> {
+                            throw new ItemInexistenteException(
+                                    CodInternoErroApi.AP003.getCodigo(),
+                                    CodInternoErroApi.AP003.getMensagem()
+                            );
+                        }
                 );
     }
 
     public void reduzirItemDoPedido(long idPedido, int quantidade) {
-        this.garantirNullSafetyItensPedido();
+        this.garantirNullSafetyItens();
         this.itens.stream()
                 .filter(itemPedido -> itemPedido.getId() == idPedido)
                 .findFirst()
@@ -57,7 +61,12 @@ public class Pedido {
                                 this.itens.remove(itemPedido);
                             }
                         },
-                        () -> { throw new ItemInexistenteException("Esse item não existe no pedido"); }
+                        () -> {
+                            throw new ItemInexistenteException(
+                                    CodInternoErroApi.AP003.getCodigo(),
+                                    CodInternoErroApi.AP003.getMensagem()
+                            );
+                        }
                 );
     }
 
@@ -93,8 +102,7 @@ public class Pedido {
         this.id = id;
     }
 
-
-    private void garantirNullSafetyItensPedido() {
+    private void garantirNullSafetyItens() {
         if(itens == null){
             itens = new ArrayList<>();
         }

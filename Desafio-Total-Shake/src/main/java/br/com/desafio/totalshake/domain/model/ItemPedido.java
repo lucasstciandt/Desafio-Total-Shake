@@ -1,13 +1,13 @@
 package br.com.desafio.totalshake.domain.model;
 
-import br.com.desafio.totalshake.application.exception.QuantidadeInvalidaException;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import br.com.desafio.totalshake.application.errors.exceptions.QuantidadeInvalidaException;
+import br.com.desafio.totalshake.application.errors.CodInternoErroApi;
 
 import javax.persistence.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "ITEM_PEDIDO")
+@Table(name = "item_pedido")
 public class ItemPedido {
 
     @Id
@@ -59,9 +59,12 @@ public class ItemPedido {
         return this.quantidade += quantidadeParaAcrescentar;
     }
 
-    private void validarQuantidade(int quantidadeParaReduzir) {
-        if(quantidadeParaReduzir <= 0){
-            throw new QuantidadeInvalidaException("Quantidade inválida, informe um valor maior que 0");
+    private void validarQuantidade(int quantidade) {
+        if(quantidade <= 0){
+            throw new QuantidadeInvalidaException(
+                    CodInternoErroApi.AP004.getCodigo(),
+                    CodInternoErroApi.AP004.getMensagem()
+            );
         }
     }
 

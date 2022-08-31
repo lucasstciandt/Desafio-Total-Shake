@@ -2,7 +2,7 @@ package br.com.desafio.totalshake.domain.service;
 
 import br.com.desafio.totalshake.application.controller.request.ItemPedidoDTO;
 import br.com.desafio.totalshake.application.controller.request.PedidoDTOPost;
-import br.com.desafio.totalshake.application.exception.PedidoInexistenteException;
+import br.com.desafio.totalshake.application.errors.exceptions.PedidoInexistenteException;
 import br.com.desafio.totalshake.domain.model.ItemPedido;
 import br.com.desafio.totalshake.domain.model.Pedido;
 import br.com.desafio.totalshake.domain.model.Status;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ActiveProfiles("test")
@@ -42,12 +42,44 @@ public class PedidoCrudServiceTest {
         ));
         pedidoDTOPost.setItens(itensPedidoDto);
 
-
         when(pedidoRepository.save(any(Pedido.class))).thenReturn(pedidoDTOPost.toPedidoModel());
 
         var pedidoSalvo = pedidoService.salvarPedido(pedidoDTOPost);
 
         assertThat(pedidoSalvo.getItens().size()).isEqualTo(2);
+        verify(pedidoRepository, times(1)).save(any(Pedido.class));
+    }
+
+    @Test
+    public void deve_adicionarUmItemNoPedido_corretamente(){
+
+        ItemPedidoDTO itemPedidoDto = new ItemPedidoDTO("feijao",2);
+        Pedido pedido = new Pedido();
+        pedido.setId(1L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
+        when(pedidoRepository.save(pedido)).thenReturn(pedido);
+
+        var pedidoSalvo = pedidoService.adicionarItemNoPedido(1L, itemPedidoDto);
+        var itemPedido = pedido.getItens().get(0);
+
+        assertThat(pedidoSalvo.getItens().size()).isEqualTo(1);
+        assertTrue(pedidoSalvo.getItens().contains(itemPedido));
+        verify(pedidoRepository, times(1)).save(any(Pedido.class));
+    }
+
+    @Test
+    public void deve_realizarOPedido_corretamente(){
+
+        Pedido pedido = new Pedido();
+        pedido.setId(1L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
+        when(pedidoRepository.save(pedido)).thenReturn(pedido);
+
+        var pedidoSalvo = pedidoService.realizarPedido(1L);
+
+        assertEquals(Status.REALIZADO, pedidoSalvo.getStatus());
         verify(pedidoRepository, times(1)).save(any(Pedido.class));
     }
 

@@ -1,11 +1,13 @@
 package br.com.desafio.totalshake.domain.service;
 
+import br.com.desafio.totalshake.application.controller.request.ItemPedidoDTO;
 import br.com.desafio.totalshake.application.controller.request.PedidoDTOPost;
 import br.com.desafio.totalshake.application.controller.response.PedidoDTOResponse;
+import br.com.desafio.totalshake.application.errors.CodInternoErroApi;
 import br.com.desafio.totalshake.domain.model.Pedido;
 import br.com.desafio.totalshake.domain.model.Status;
 import br.com.desafio.totalshake.domain.repository.PedidoRepository;
-import br.com.desafio.totalshake.application.exception.PedidoInexistenteException;
+import br.com.desafio.totalshake.application.errors.exceptions.PedidoInexistenteException;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +28,8 @@ public class PedidoCrudService {
 
         var pedido = pedidoDTOPost.toPedidoModel();
 
-        pedido.setStatus(Status.REALIZADO);
         pedido.setDataHora(LocalDateTime.now());
+        pedido.setStatus(Status.CRIADO);
         pedido = pedidoRepository.save(pedido);
 
         return new PedidoDTOResponse(pedido);
@@ -52,6 +54,16 @@ public class PedidoCrudService {
     }
 
     @Transactional
+    public PedidoDTOResponse adicionarItemNoPedido(Long pedidoId, ItemPedidoDTO itemPedidoDTO) {
+        var pedido = this.buscarPedidoPorId(pedidoId);
+        var itemPedido = itemPedidoDTO.toItemPedidoModel();
+        pedido.adicionarItem(itemPedido);
+        pedido = pedidoRepository.save(pedido);
+
+        return new PedidoDTOResponse(pedido);
+    }
+
+    @Transactional
     public PedidoDTOResponse cancelarPedido(Long idPedido) {
         var pedido = this.buscarPedidoPorId(idPedido);
         pedido.setStatus(Status.CANCELADO);
@@ -61,9 +73,23 @@ public class PedidoCrudService {
     }
 
     @Transactional
-    public Pedido buscarPedidoPorId(long idPedido) {
+    public Pedido buscarPedidoPorId(Long idPedido) {
         return pedidoRepository
                 .findById(idPedido)
-                .orElseThrow(() -> new PedidoInexistenteException("Pedido inexistente"));
+                .orElseThrow(
+                        () -> new PedidoInexistenteException(
+                                CodInternoErroApi.AP002.getCodigo(),
+                                CodInternoErroApi.AP002.getMensagem()
+                        )
+                );
+    }
+
+    @Transactional
+    public PedidoDTOResponse realizarPedido(Long idPedido) {
+        var pedido = buscarPedidoPorId(idPedido);
+        pedido.setStatus(Status.REALIZADO);
+        pedido = pedidoRepository.save(pedido);
+
+        return new PedidoDTOResponse(pedido);
     }
 }
