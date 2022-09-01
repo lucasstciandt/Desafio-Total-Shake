@@ -2,6 +2,8 @@ package br.com.desafio.totalshake.domain.model;
 
 import br.com.desafio.totalshake.application.errors.exceptions.ItemInexistenteException;
 import br.com.desafio.totalshake.application.errors.CodInternoErroApi;
+import br.com.desafio.totalshake.domain.service.EstadoPedido;
+import br.com.desafio.totalshake.impl.EstadoPedidoFactory;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -15,10 +17,20 @@ public class Pedido {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne(
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            mappedBy = "pedido"
+    )
+    private DataHoraStatusPedido dataHoraStatus;
+
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private Status status = Status.CRIADO;
+
+    @Transient
+    private  EstadoPedido estadoPedido;
 
     @OneToMany(
             mappedBy = "pedido",
@@ -33,10 +45,10 @@ public class Pedido {
         itens.add(itemPedido);
     }
 
-    public void acrescentarItemDoPedido(long idPedido, int quantidade) {
+    public void acrescentarItemDoPedido(long idItemPedido, int quantidade) {
         this.garantirNullSafetyItens();
         this.itens.stream()
-                .filter(itemPedido -> itemPedido.getId() == idPedido)
+                .filter(itemPedido -> itemPedido.getId() == idItemPedido)
                 .findFirst()
                 .ifPresentOrElse(
                         itemPedido -> itemPedido.acrescentarQuantidadeItem(quantidade),
@@ -49,17 +61,15 @@ public class Pedido {
                 );
     }
 
-    public void reduzirItemDoPedido(long idPedido, int quantidade) {
+    public void reduzirItemDoPedido(long idItemPedido, int quantidade) {
         this.garantirNullSafetyItens();
         this.itens.stream()
-                .filter(itemPedido -> itemPedido.getId() == idPedido)
+                .filter(itemPedido -> itemPedido.getId() == idItemPedido)
                 .findFirst()
                 .ifPresentOrElse(
                         itemPedido -> {
                             int qtdAtual = itemPedido.reduzirQuantidadeItem(quantidade);
-                            if(qtdAtual <= 0){
-                                this.itens.remove(itemPedido);
-                            }
+                            if(qtdAtual <= 0){ this.itens.remove(itemPedido); }
                         },
                         () -> {
                             throw new ItemInexistenteException(
@@ -70,12 +80,71 @@ public class Pedido {
                 );
     }
 
+    public void criarPedido() {
+        this.garantirNullSafetyEstadoPedido();
+        this.garantirNullSafetyDataHoraStatus();
+        this.dataHoraStatus.salvarDataHoraCriacao();
+    }
+
+    public void realizarPedido(){
+        this.garantirNullSafetyEstadoPedido();
+        this.estadoPedido.realizarPedido();
+        this.garantirNullSafetyDataHoraStatus();
+        this.dataHoraStatus.salvarDataHoraRealizado();
+    }
+
+    public void cancelarPedido(){
+        this.garantirNullSafetyEstadoPedido();
+        this.estadoPedido.cancelarPedido();
+        this.garantirNullSafetyDataHoraStatus();
+        this.dataHoraStatus.salvarDataHoraCancelado();
+    }
+
+    private void garantirNullSafetyItens() {
+        if(itens == null){
+            itens = new ArrayList<>();
+        }
+    }
+
+    private void garantirNullSafetyEstadoPedido() {
+        if(this.estadoPedido == null){
+            this.estadoPedido = EstadoPedidoFactory.ofStatus(this.status, this);
+        }
+    }
+
+    private void garantirNullSafetyDataHoraStatus() {
+        if(this.dataHoraStatus == null){
+            this.dataHoraStatus = new DataHoraStatusPedido();
+        }
+    }
+
+    @PrePersist
+    public void setarUltimaAtualizacaoPedido(){
+        this.dataHora = LocalDateTime.now();
+    }
+
+    public DataHoraStatusPedido getDataHoraStatus() {
+        if(this.dataHoraStatus == null){
+            this.dataHoraStatus = new DataHoraStatusPedido();
+        }
+        return dataHoraStatus;
+    }
+
+    public EstadoPedido getEstadoPedido() {
+        this.garantirNullSafetyEstadoPedido();
+        return estadoPedido;
+    }
+
     public List<ItemPedido> getItens() {
         return itens;
     }
 
     public void setItens(List<ItemPedido> itens) {
         this.itens = itens;
+    }
+
+    public void setEstadoPedido(EstadoPedido estadoPedido) {
+        this.estadoPedido = estadoPedido;
     }
 
     public LocalDateTime getDataHora() {
@@ -102,12 +171,6 @@ public class Pedido {
         this.id = id;
     }
 
-    private void garantirNullSafetyItens() {
-        if(itens == null){
-            itens = new ArrayList<>();
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -120,5 +183,6 @@ public class Pedido {
     public int hashCode() {
         return Objects.hash(id);
     }
+
 
 }
