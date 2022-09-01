@@ -2,15 +2,15 @@ package br.com.desafio.totalshake.domain.model;
 
 import br.com.desafio.totalshake.application.errors.exceptions.ItemInexistenteException;
 import br.com.desafio.totalshake.application.errors.CodInternoErroApi;
-import br.com.desafio.totalshake.domain.service.EstadoPedido;
-import br.com.desafio.totalshake.impl.EstadoPedidoFactory;
+import br.com.desafio.totalshake.domain.service.state.EstadoPedido;
+import br.com.desafio.totalshake.domain.service.state.EstadoPedidoFactory;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
-@Table(name = "pedido")
+@Table(name = "PEDIDO")
 public class Pedido {
 
     @Id
@@ -24,6 +24,7 @@ public class Pedido {
     )
     private DataHoraStatusPedido dataHoraStatus;
 
+    @Column(name = "data_hora")
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
@@ -54,8 +55,8 @@ public class Pedido {
                         itemPedido -> itemPedido.acrescentarQuantidadeItem(quantidade),
                         () -> {
                             throw new ItemInexistenteException(
-                                    CodInternoErroApi.AP003.getCodigo(),
-                                    CodInternoErroApi.AP003.getMensagem()
+                                    CodInternoErroApi.AP202.getCodigo(),
+                                    CodInternoErroApi.AP202.getMensagem()
                             );
                         }
                 );
@@ -73,8 +74,8 @@ public class Pedido {
                         },
                         () -> {
                             throw new ItemInexistenteException(
-                                    CodInternoErroApi.AP003.getCodigo(),
-                                    CodInternoErroApi.AP003.getMensagem()
+                                    CodInternoErroApi.AP202.getCodigo(),
+                                    CodInternoErroApi.AP202.getMensagem()
                             );
                         }
                 );
@@ -115,6 +116,7 @@ public class Pedido {
     private void garantirNullSafetyDataHoraStatus() {
         if(this.dataHoraStatus == null){
             this.dataHoraStatus = new DataHoraStatusPedido();
+            this.dataHoraStatus.setPedido(this);
         }
     }
 

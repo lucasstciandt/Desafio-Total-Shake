@@ -7,7 +7,6 @@ import br.com.desafio.totalshake.domain.model.Status;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import java.time.LocalDateTime;
 
@@ -26,7 +25,6 @@ public class PedidoDTOResponse {
     private final List<ItemPedido> itens;
 
     @JsonIgnoreProperties(value = {"pedido", "id"})
-    @JsonProperty("dataHoraStatus")
     private final DataHoraStatusPedido dataHoraStatus;
 
     public PedidoDTOResponse(Pedido pedidoCriado) {
@@ -53,6 +51,7 @@ public class PedidoDTOResponse {
         return itens;
     }
 
+    @JsonProperty("dataHoraStatus")
     public DataHoraStatusPedido getDataHoraStatusPedido() {
         return dataHoraStatus;
     }
